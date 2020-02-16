@@ -1,0 +1,73 @@
+import React, { componentDidMount, useEffect } from 'react';
+import io from 'socket.io-client';
+
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.socket = io('http://localhost:8000');
+  }
+
+  state = {
+    tasks: [],
+    formValue: '',
+    validationError: false,
+  }
+
+  componentDidMount() {
+    console.log('component mounted');
+    this.socket.on('message', newTasks => this.setState({ tasks: newTasks}));
+  }
+
+  handleChange(event) {
+    this.setState({formValue: event.target.value});
+    if(event.target.value.length) this.setState({validationError: false});
+  }
+
+  emit(e) {
+    e.preventDefault();
+    if(this.state.formValue.length){
+      this.socket.emit('message', { message: this.state.formValue });
+      this.socket.on('message', newTasks => this.setState({ tasks: newTasks}));
+      this.setState({formValue: ''});
+      this.setState({validationError: false});
+    }
+    else this.setState({validationError: true});
+  }
+
+  render(){
+    return (
+      <div className="App">
+
+        <header>
+          <h1>ToDoList.app</h1>
+        </header>
+
+        <section className="tasks-section" id="tasks-section">
+          <h2>Tasks</h2>
+
+          <ul className="tasks-section__list" id="tasks-list">
+            { !this.state.tasks.length ? '' : this.state.tasks.map( task =>
+              <li className="task" key={task}>{task} <button className="btn btn--red">Remove</button></li>
+              )
+            }
+          </ul>
+
+          <form id="add-task-form" onSubmit={ (event) => this.emit(event)}>
+            <input className="text-input"
+                   autoComplete="off"
+                   type="text"
+                   placeholder="Type your description"
+                   id="task-name"
+                   value={this.state.formValue}
+                   onChange={ event => this.handleChange(event)}
+            />
+            <button className="btn" type="submit">Add</button>
+          </form>
+          { this.state.validationError && <h6 className='error'>Add task!</h6> }
+        </section>
+      </div>
+    );
+  }
+}
+
+export default App;
